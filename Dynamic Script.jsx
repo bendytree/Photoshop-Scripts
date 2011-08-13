@@ -1,4 +1,33 @@
-﻿var doc =  app.activeDocument; 
+﻿/**
+
+Super Export.jsx
+  by: Josh Wright
+  company: Bendy Tree, LLC (http://www.bendytree.com)
+  created: July 30, 2011
+  repo: https://github.com/bendytree/Photoshop-Scripts
+  
+  
+This is a Photoshop script that lets you makes it easy to dynamically run
+any arbitrary Javascript in Photoshop.
+
+For installation instructions or for other scripts by Bendy Tree, see:
+https://github.com/bendytree/Photoshop-Scripts
+
+
+HOW IT WORKS
+
+To use it, create a text layer named 'script' and put your code as the text
+on that layer.  For example, you might write:
+
+alert('The path is: '+app.activeDocument.path);
+
+When you run this script, an alert box should pop up telling you the path
+of the active document.
+
+**/
+
+
+var doc =  app.activeDocument; 
 
 var stringIDToTypeID = function(s){
     return app.stringIDToTypeID(s);

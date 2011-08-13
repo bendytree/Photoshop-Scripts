@@ -1,0 +1,46 @@
+
+This repo contains a handful of scripts I've been working on to make certain
+Photoshop tasks easier.  I'll list their basic function below, but see the
+comment at the top of each script for more info on features and usage.
+
+
+Dynamic Script.jsx
+
+A very simple script that makes it easy to test a few lines of javascript in
+Photoshop.  You won't find it too helpful unless you write scripts a lot. 
+
+
+Super Export.jsx
+
+A Photoshop script that lets you save parts of a PSD as separate cropped
+files by carefully naming the Photoshop layers.  For example, if you name
+a layer "Background.jpg" and run this script, that layer will be saved and
+all others will be hidden.
+
+
+
+GETTING STARTED (INSTALLATION)
+
+Installing a photoshop script means dropping the script (*.jsx file) into Photoshop's scripts directory.  For me, the path is:
+
+MAC: /Applications/Adobe Photoshop CS4/Presets/Scripts
+PC: c:\program files\Adobe Photoshop CS4\Presets\Scripts
+
+So the easiest way to get going is to copy "Super Export.jsx" to:
+/Applications/Adobe Photoshop CS4/Presets/Scripts/Super Export.jsx
+
+Once you restart Photoshop, a new menu item will show up in the menu File > Scripts > Super Export.  Just click on that menu item and the script will run.
+
+I made a keyboard shortcut [F5] to run it automatically, Here's how:
+1) Choose Edit > Keyboard Shortcuts...
+2) Highlight "Super Export" under File > Scripts
+3) Click under the 'Shortcut' column and type the [F5] key (or whatever you want)
+4) If there are conflicts, choose 'Accept & Continue', otherwise choose 'Accept'
+
+You can also have scripts in subfolders of this directory, so if you're familiar with GIT, want all my scripts, and want easy access to updates you could clone:  git@github.com:bendytree/Photoshop-Scripts.git to /Applications/Adobe Photoshop CS4/Presets/Scripts/BendyTree  and whenever you want an update, just do a 'git pull' from that directory.  Photoshop gracefully ignores non .jsx files (like .gitignore and readme).
+
+
+
+
+
+
