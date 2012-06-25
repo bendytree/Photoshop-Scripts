@@ -360,6 +360,31 @@ Qualities can be stated in three ways:
             return options;
         }
     }
+    
+    function getExportOptions(layerInfo){
+        var options = new ExportOptionsSaveForWeb();
+
+        if(layerInfo.extension == "jpg"){
+            options.format = SaveDocumentType.JPEG; //-24 //JPEG, COMPUSERVEGIF, PNG-8, BMP 
+            
+            //Quality
+            if(layerInfo.q){
+                if(isNaN(parseFloat(layerInfo.q)) == false){
+                    layerInfo.q = Math.max(Math.min(parseFloat(layerInfo.q), 100), 0);
+                    if(layerInfo.q<=1){
+                        layerInfo.q = Math.round(layerInfo.q*100);
+                    }
+                }
+            }
+            options.quality = layerInfo.q || 80; 
+        }else if(layerInfo.extension == "png"){
+            options.format = SaveDocumentType.PNG; //JPEG, COMPUSERVEGIF, PNG-8, BMP 
+            options.quality = 100;
+            options.PNG8 = false;
+        }
+         
+        return options;
+    }
 
     function convertLayerNameToInfo(name){
         var info = { name:name, tags:{}, hasTags:false };
@@ -455,7 +480,8 @@ Qualities can be stated in three ways:
                 var save = function(filename){
                     //Save
                     var filepath = getPath()+"/"+filename;
-                    doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
+                    //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
+                    doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
 
                     //Retina?
                     if(info.filename.match(/@2x[.][a-z]+$/)){
@@ -463,7 +489,8 @@ Qualities can be stated in three ways:
                         doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
                     
                         var filepath = getPath()+"/"+filename.replace("@2x", "");
-                        doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
+                        //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
+                        doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
                         doc.activeHistoryState = preResizeState;
                     }
                 }
