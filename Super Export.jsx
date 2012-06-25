@@ -490,6 +490,10 @@ Qualities can be stated in three ways:
                     //Retina?
                     if(info.filename.match(/@2x[.][a-z]+$/)){
                         var preResizeState = doc.activeHistoryState;
+                        
+                        //if(doc.layers.length > 1)
+                            doc.mergeVisibleLayers();
+                            
                         doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
                     
                         var filepath = getPath()+"/"+filename.replace("@2x", "");
