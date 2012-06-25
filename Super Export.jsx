@@ -381,6 +381,10 @@ Qualities can be stated in three ways:
             options.format = SaveDocumentType.PNG; //JPEG, COMPUSERVEGIF, PNG-8, BMP 
             options.quality = 100;
             options.PNG8 = false;
+        }else if(layerInfo.extension == "gif"){
+            options.format = SaveDocumentType.COMPUSERVEGIF; //JPEG, COMPUSERVEGIF, PNG-8, BMP 
+            options.matte = MatteType.NONE;
+            options.transparency = true;
         }
          
         return options;
