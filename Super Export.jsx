@@ -408,9 +408,9 @@ Qualities can be stated in three ways:
                 
             //hide ancestors siblings
             a.siblings.each(function(sib){
-                if(sib.layer.visible != false){
-                     sib.layer.visible = false;
-                }
+                var setVisible = new RegExp(/^ *[*]/).test(sib.name);
+                if(sib.layer.visible != setVisible)
+                     sib.layer.visible = setVisible;
             });
         });
     }
@@ -553,7 +553,7 @@ Qualities can be stated in three ways:
                 });
                 
                 //create filename
-                var filename = info.filename;
+                var filename = data.filename;
                 allKeys.each(function(key){
                     filename = filename.replace("{"+key+"}", combo[key]); 
                 });
