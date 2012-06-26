@@ -167,36 +167,10 @@ Qualities can be stated in three ways:
     app.preferences.rulerUnits = Units.PIXELS;
     app.preferences.typeUnits = TypeUnits.PIXELS;
     
-
-    /********************************************************************************/
-    /*********************************  REVERT  *************************************/
-    
-    var selectedLayer = doc.activeLayer;
-    var originalHistoryState = doc.activeHistoryState;
-    
-    var layersSettings = [];
-    eachLayer(function(layer){
-        layersSettings[layersSettings.length] = {
-            layer: layer,
-            visible: layer.visible
-        };
-    });
-    
-    function revert_all(){
-        doc.activeHistoryState = originalHistoryState;
-
-        for(var i=0; i<layersSettings.length; i++){
-            var layerSettings = layersSettings[i];
-		    if(layerSettings.layer.visible != layerSettings.visible)
-                layerSettings.layer.visible = layerSettings.visible;
-        }
-        
-        doc.activeLayer = selectedLayer;
-    }
     
     
     /********************************************************************************/
-    /********************************  EXTENSIONS  **********************************/
+    /********************************   UTILTIES   **********************************/
 
     String.prototype.trim = function(){ 
        return this.replace(/^ */, "").replace(/ *$/, "");
@@ -253,121 +227,197 @@ Qualities can be stated in three ways:
         }
         return derivedArray;
     };
-    
-    
+
+
     /********************************************************************************/
-    /*****************************  LAYER ENUMERATION  ******************************/
+    /*****************************  LAYER DATA & CACHING  ***************************/
     
-    function buildCacheForLayer(layer){        
-        var cache = {
-            layerRef: layer,
-            layers: []
+    function convertLayerToData(layer){
+        var data = {
+            layer: layer,
+            isSet: layer.typename == "LayerSet",
+            name: layer.name,
+            startedVisible: layer.visible,
+            tags: {},
+            hasTags: false,
+            siblings: [],
+            descendents: [],
+            ancestors: [],
+            children: []
         };
-
-        if(layer.layers)
-          for(var i=0; i<layer.layers.length; i++)
-            cache.layers[i] = buildCacheForLayer(layer.layers[i]);
         
-        return cache;
-    }
-    
-    function findCacheForLayer(layer, currentCache){
-        currentCache = currentCache || rootLayerCache;
-        if(layer == currentCache.layerRef)
-            return currentCache;
-        
-        for(var i=0; i<currentCache.layers.length; i++){
-            var newCache = findCacheForLayer(layer, currentCache.layers[i]);
-            if(newCache)
-                return newCache;
+        // Get tags
+        if(data.name.indexOf("-") == 0){
+            var tags = data.name.substring(data.name.lastIndexOf("-")+1).trim().split(",");
+		    for(var i=0; i<tags.length; i++){
+		        var t = tags[i].split(":");
+                if(t.length == 1){
+                    t[1] = t[0].trim();
+                    t[0] = "0";
+                }else{
+                    t[0] = t[0].trim();
+                    t[1] = t[1].trim();
+                }
+			    data.tags[t[0]] = t[1];
+		    }
+            data.name = data.name.substring(0, data.name.lastIndexOf("-")).trim();
+            data.hasTags = true;
         }
-        return null;
+        
+        // Split by Comma
+        var sections = data.name.split(",");
+        for(var i=0; i<sections.length; i++){
+            var section = sections[i].trim();
+
+            //No Colon, So Maybe A Filename
+            if(section.indexOf(":") == -1){
+                var extension = section.match(/(jpg|png|gif)$/i);
+                if(extension){
+                    data.filename = section;
+                    data.extension = extension[0].toLowerCase();
+                }
+
+            //Colon, So Split Into Key/Value
+            }else{
+                var fieldParts = section.split(":");
+                data[fieldParts[0].trim().toLowerCase()] = fieldParts[1].trim();
+            }
+        }
+
+        data.isExportable = data.isSet && !!data.filename;
+        
+        return data;
     }
     
-    var rootLayerCache = null;
-    function eachLayer(callback, layer){
-        if(rootLayerCache == null)
-            rootLayerCache = buildCacheForLayer(doc);
+    var layerDatas = [];
+    var buildAndRegisterLayerData = function(layer){
+        //create my data
+        var data = convertLayerToData(layer);
+        layerDatas.push(data);
         
-        var each = function(callback, layerCache){
-            for(var i=0; i<layerCache.layers.length; i++){
-                if(callback(layerCache.layers[i].layerRef) == false)
-                    return false;
-
-                if(each(callback, layerCache.layers[i]) == false)
-                    return false;
+        //add all descendents
+        if(layer.layers && layer.layers.length > 0){
+            for(var i=0; i<layer.layers.length; i++){
+                //create data for the child
+                var childData = buildAndRegisterLayerData(layer.layers[i]);
+                
+                //add this child
+                data.children.push(childData);
+                data.descendents.push(childData);
+                
+                //add this child's descendents
+                childData.descendents.each(function(d){
+                    data.descendents.push(d);
+                });
             }
-        };
         
-        each(callback, findCacheForLayer(layer || doc));
+            //set siblings
+            data.children.each(function(c1){
+                data.children.each(function(c2){
+                    if(c1 != c2)
+                        c1.siblings.push(c2);
+                });                
+            });
+        
+            //add self as an ancestor
+            data.descendents.each(function(d){                
+                d.ancestors.push(data);
+            });
+        }
+        return data;
+    };
+    buildAndRegisterLayerData(doc);
+    
+    var findDataForLayer = function(layer){
+        var data = null;
+        layerDatas.each(function(l){
+            if(l.layer == layer)
+            {
+                data = l;
+                return false;
+            }
+        });
+        return data;
+    };
+
+    layerDatas.each(function(l){
+        var txt = l.name + " => ";
+        l.siblings.each(function(c){
+            txt +=  c.name + ", ";
+        });
+        //$.writeln(txt);
+    });
+    //return;
+    
+
+    /********************************************************************************/
+    /**********************************  REVERTING  *********************************/
+    
+    var selectedLayer = doc.activeLayer;
+    var originalHistoryState = doc.activeHistoryState;
+    
+    var revert = function(){
+        doc.activeHistoryState = originalHistoryState;
+        doc.activeLayer = selectedLayer;
+
+        layerDatas.each(function(l){
+		    if(l.startedVisible != l.layer.visible)
+                l.layer.visible = l.startedVisible;
+        });
     }
 
+    /********************************************************************************/
+    /******************************  HIDE HASHED LAYERS  ****************************/
+    
+    //Hide hashed
+    layerDatas.each(function(l){
+        if(l.name.indexOf("#") != -1 && l.layer.visible != false)
+            l.layer.visible = false;
+    });
+    
     
     /********************************************************************************/
     /*********************************  HELPERS  ************************************/
 
-    function cropToLayer(layer){
-       if(layer.visible != false)
-            layer.visible = false;
+    var cropRx = /^ *crop/i;
+    var runCroppingLayers = function(data){
+        data.children.each(function(c){
+            if(cropRx.test(c.name)){
+        
+                //hide it
+                if(c.layer.visible != false)
+                    c.layer.visible = false;
                     
-        var bounds = layer.bounds;
-        if(!bounds) return;
-        doc.crop(bounds);
-    }
-    
-    function hideSiblingsOfSelfAndOfParent(layer){
-        if(layer.typename == "Document")
-            return; //document has no siblings
-
-		if(layer.visible != true)
-             layer.visible = true;
-
-        for(var i=0; i<layer.parent.layers.length; i++){
-            var currentLayer = layer.parent.layers[i];
-            if(layer == currentLayer)
-                continue;
-            
-			if(currentLayer.visible != false)
-                 currentLayer.visible = false;
-        }
-
-        hideSiblingsOfSelfAndOfParent(layer.parent);
-    }
-
-    function getSaveOptions(layerInfo){
-        if(layerInfo.extension == "jpg"){
-            var options = new JPEGSaveOptions();
-            options.matte = MatteType.BACKGROUND;
-
-            //Quality
-            if(layerInfo.q){
-                if(isNaN(parseFloat(layerInfo.q)) == false){
-                    layerInfo.q = Math.max(Math.min(parseFloat(layerInfo.q), 100), 0);
-                    if(layerInfo.q<=1){
-                        layerInfo.q = Math.round(layerInfo.q*12);
-                    }else if(layerInfo.q > 12){
-                        layerInfo.q = Math.round((layerInfo.q/100.0)*12);
-                    }
-                }
+                //crop it
+                if(c.layer.bounds)
+                    doc.crop(c.layer.bounds);
             }
-            options.quality = layerInfo.q || 10; 
-
-            return options;
-        }else if(layerInfo.extension == "png"){
-            var options = new PNGSaveOptions();
-            options.matte = MatteType.NONE;
-            return options;
-        }else if(layerInfo.extension == "gif"){
-            var options = new GIFSaveOptions();
-            options.matte = MatteType.NONE;
-            options.transparency = true;
-            return options;
-        }
+        });
     }
+
+    function hideSiblingsOfSelfAndOfParent(data){
+        var chain = [data];
+        data.ancestors.each(function(a){
+            chain.push(a);
+        });
+
+        chain.each(function(a){
+            //show ancestors
+            if(a.layer.visible != true)
+                a.layer.visible = true;
+                
+            //hide ancestors siblings
+            a.siblings.each(function(sib){
+                if(sib.layer.visible != false){
+                     sib.layer.visible = false;
+                }
+            });
+        });
+    }
+
     
     function getExportOptions(layerInfo){
         var options = new ExportOptionsSaveForWeb();
-
         if(layerInfo.extension == "jpg"){
             options.format = SaveDocumentType.JPEG; //-24 //JPEG, COMPUSERVEGIF, PNG-8, BMP 
             
@@ -389,55 +439,10 @@ Qualities can be stated in three ways:
             options.format = SaveDocumentType.COMPUSERVEGIF; //JPEG, COMPUSERVEGIF, PNG-8, BMP 
             options.matte = MatteType.NONE;
             options.transparency = true;
-        }
-         
+        }         
         return options;
     }
 
-    function convertLayerNameToInfo(name){
-        var info = { name:name, tags:{}, hasTags:false };
-        
-        // Get tags
-        if(name.indexOf("-") == 0){
-            var tags = name.substring(name.lastIndexOf("-")+1).trim().split(",");
-		    for(var i=0; i<tags.length; i++){
-		        var t = tags[i].split(":");
-                if(t.length == 1){
-                    t[1] = t[0].trim();
-                    t[0] = "0";
-                }else{
-                    t[0] = t[0].trim();
-                    t[1] = t[1].trim();
-                }
-			    info.tags[t[0]] = t[1];
-		    }
-            name = name.substring(0, name.lastIndexOf("-")).trim();
-            info.hasTags = true;
-        }
-        
-        // Split by Comma
-        var sections = name.split(",");
-        for(var i=0; i<sections.length; i++){
-            var section = sections[i].trim();
-
-            //No Colon, So Maybe A Filename
-            if(section.indexOf(":") == -1){
-                var extension = section.match(/(jpg|png|gif)$/i);
-                if(extension){
-                    info.filename = section;
-                    info.extension = extension[0].toLowerCase();
-                }
-
-            //Colon, So Split Into Key/Value
-            }else{
-                var fieldParts = section.split(":");
-                info[fieldParts[0].trim().toLowerCase()] = fieldParts[1].trim();
-            }
-        }
-
-        return info;
-    }
-    
     var getCurrentDocumentIndex = function(){
         for(var i=0; i<app.documents.length; i++){
             if(app.activeDocument == app.documents[i])
@@ -452,50 +457,27 @@ Qualities can be stated in three ways:
         return app.documents[newIndex].path;
     };
     
-    var isLayerExportable = function(layer){
-        if(layer.typename != "LayerSet")
-            return false;
-        
-        //Get the extension
-        var info = convertLayerNameToInfo(layer.name);
-        if(!info.filename) 
-            return false;
-            
-        return true;
-    };
     
+    /********************************************************************************/
+    /*******************************  LAYER EXPORT  **********************************/
 
-    var exportLayer = function(layer){        
-        //Get the extension
-        var info = convertLayerNameToInfo(layer.name);
+    var exportLayer = function(data){
         
-        //Hide hashed
-        eachLayer(function(l){
-            if(l.name.indexOf("#") != -1)
-               if(l.visible != false)
-                    l.visible = false;
-        });
-
-        //Crop if need be
-        for(var i=0; i<layer.layers.length; i++){
-            var l = layer.layers[i];
-            if(l.name.match(/^ *crop *(copy *(\d)*)* *$/i)){
-                cropToLayer(l);
-            }
-        }
-
+        //crop
+        runCroppingLayers(data);
+    
         //Hide bad stuff
-        hideSiblingsOfSelfAndOfParent(layer);
+        hideSiblingsOfSelfAndOfParent(data);
 
         //Prepare saving function
         var save = function(filename){
             //Save
             var filepath = getPath()+"/"+filename;
-            //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
-            doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
+            var exportOptions = getExportOptions(data);
+            doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, exportOptions);
 
             //Retina?
-            if(info.filename.match(/@2x[.][a-z]+$/)){
+            if(data.filename.match(/@2x[.][a-z]+$/)){
                 var preResizeState = doc.activeHistoryState;
                 
                 try { doc.flatten(); }catch(e){}
@@ -503,28 +485,26 @@ Qualities can be stated in three ways:
                 doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
             
                 var filepath = getPath()+"/"+filename.replace("@2x", "");
-                //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
-                doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
+                doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, exportOptions);
                 doc.activeHistoryState = preResizeState;
             }
-        }            
+        };
 
         //save once for each tagged layer inside this layerset
-        if(new RegExp(/\{[^}]+\}/).test(info.filename)){
+        if(new RegExp(/\{[^}]+\}/).test(data.filename)){
             //gather all possible tags & tag values
             var allTags = {};
-            eachLayer(function(l){
-                var info = convertLayerNameToInfo(l.name);
-                var currentTags = keys(info.tags);
+            data.descendents.each(function(d){
+                var currentTags = keys(d.tags);
                 for(var i=0; i<currentTags.length; i++){
                     var t = currentTags[i];
                     if(allTags[t]){
-                        allTags[t] = allTags[t].concat([ info.tags[t] ]).distinct();   
+                        allTags[t] = allTags[t].concat([ d.tags[t] ]).distinct();   
                     }else{
-                        allTags[t] = [ info.tags[t] ];
+                        allTags[t] = [d.tags[t] ];
                     }
                 }
-            }, layer);
+            });
             var allKeys = keys(allTags);
             
             //create a strategy for covering all tag combinations
@@ -560,16 +540,17 @@ Qualities can be stated in three ways:
            //save each combo
            for(var i=0; i<allCombinations.length; i++){
                 var combo = allCombinations[i];
-                eachLayer(function(l){
-                    var info = convertLayerNameToInfo(l.name);
-                    if(!info.hasTags) return;
+                data.descendents.each(function(l){
+                    if(!l.hasTags) return;
                     
                     var visible = true;
-                    keys(info.tags).each(function(key){
-                       visible &= info.tags[key] == combo[key];
+                    keys(l.tags).each(function(key){
+                       visible &= l.tags[key] == combo[key];
                     });
-                    l.visible = visible;
-                }, layer);
+                
+                    if(l.layer.visible != visible)
+                        l.layer.visible = visible;
+                });
                 
                 //create filename
                 var filename = info.filename;
@@ -583,56 +564,78 @@ Qualities can be stated in three ways:
             
         //save normally (no swapable layers)
         }else{
-            save(info.filename);
+            save(data.filename);
         }
-        
-        revert_all();
+    
+        revert();
+    };
+
+    var prepGuiForExport = function(){
+        win.btnOne.enabled = false;
+        win.btnExportAll.enabled = false;
+        win.btnOne.active = false;
+        win.btnExportAll.active = false;
+        win.btnOne.visible = false;
+        win.btnExportAll.visible = false;
+        win.lblProgress.visible = true;     
     };
 
     var exportableLayers = [];
-    eachLayer(function(l){
-        if(isLayerExportable(l)){
+    layerDatas.each(function(l){
+        if(l.isExportable){
             exportableLayers.push(l);
         }
     });
 
     
+    
     /********************************************************************************/
     /**********************************  MAIN  **************************************/
-        
-    if(exportableLayers.length > 1)
+
+    
+    //which layer to export?
+    var activeLayerDataToExport = findDataForLayer(selectedLayer);
+    if(activeLayerDataToExport && !activeLayerDataToExport.isExportable){
+        var newActiveLayerDataToExport = null;
+        activeLayerDataToExport.ancestors.each(function(a){
+            if(a.isExportable){
+                newActiveLayerDataToExport = a;
+                return false;
+            }
+        });
+        activeLayerDataToExport = newActiveLayerDataToExport;
+    }
+
+    if(activeLayerDataToExport && exportableLayers.length > 5)
     {
         // SHOW THE WINDOW
         var win = new Window("dialog{text:'Script Interface',bounds:[100,100,400,220],\
-            btnExportAll:Button{bounds:[20,20,140,70] , text:'Export All' },\
-            btnOne:Button{bounds:[160,20,280,70] , text:'Export One' },\
+            btnExportAll:Button{bounds:[20,20,140,70] , text:'Export All ' },\
+            btnOne:Button{bounds:[160,20,280,70] , text:'Export One ' },\
             prog:Progressbar{bounds:[20,90,280,101] , value:0,maxvalue:100},\
-            lblProgress:StaticText{bounds:[100,40,210,70] , text:'Saving 10 Images...' ,properties:{scrolling:false,multiline:false}}\
+            lblProgress:StaticText{bounds:[20,40,280,70] , text:'Saving 10 Images... ' ,properties:{scrolling:true,multiline:true}}\
         };");
         win.lblProgress.visible = false;
         win.btnExportAll.text = "Export All ("+exportableLayers.length+")";
+        win.btnExportAll.active = true;
         win.btnExportAll.onClick = function(){
-            win.btnOne.visible = false;
-            win.btnExportAll.visible = false;
-            win.lblProgress.visible = true;
+            prepGuiForExport();
             win.lblProgress.text = "Exporting All Images...";
             
-            for(var i=0; i<exportableLayers.length; i++){
+            exportableLayers.each(function(l, i){
                 win.prog.value = ((i+1)*100.0)/(exportableLayers.length+1);
-                exportLayer(exportableLayers[i]);
-            }
+                exportLayer(l);
+            });
             win.prog.value = 100;
                 
             win.close();
         };
-        win.btnOne.text = selectedLayer.name;
+        win.btnOne.text = activeLayerDataToExport.name;
         win.btnOne.onClick = function(){
-            win.btnOne.visible = false;
-            win.btnExportAll.visible = false;
-            win.lblProgress.visible = true;
-            win.lblProgress.text = "Exporting "+selectedLayer.name+"...";
+            prepGuiForExport();
+            win.lblProgress.text = "Exporting "+activeLayerDataToExport.name+"...";
             win.prog.value = 50;
-            exportLayer(selectedLayer);
+            exportLayer(activeLayerDataToExport);
             win.close();
         };
         win.center();
@@ -640,9 +643,9 @@ Qualities can be stated in three ways:
     }
     else
     {
-        for(var i=0; i<exportableLayers.length; i++){
-            exportLayer(exportableLayers[i]);
-        }
+        exportableLayers.each(function(l){
+            exportLayer(l);
+        });
     }
 
 
