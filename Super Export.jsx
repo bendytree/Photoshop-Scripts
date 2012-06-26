@@ -167,9 +167,11 @@ Qualities can be stated in three ways:
     app.preferences.rulerUnits = Units.PIXELS;
     app.preferences.typeUnits = TypeUnits.PIXELS;
     
+
     /********************************************************************************/
     /*********************************  REVERT  *************************************/
-
+    
+    var selectedLayer = doc.activeLayer;
     var originalHistoryState = doc.activeHistoryState;
     
     var layersSettings = [];
@@ -183,16 +185,15 @@ Qualities can be stated in three ways:
     function revert_all(){
         doc.activeHistoryState = originalHistoryState;
 
-        revert_layer_visibilities();
-    }
-    
-    function revert_layer_visibilities(){
         for(var i=0; i<layersSettings.length; i++){
             var layerSettings = layersSettings[i];
 		    if(layerSettings.layer.visible != layerSettings.visible)
                 layerSettings.layer.visible = layerSettings.visible;
         }
+        
+        doc.activeLayer = selectedLayer;
     }
+    
     
     /********************************************************************************/
     /********************************  EXTENSIONS  **********************************/
@@ -306,6 +307,9 @@ Qualities can be stated in three ways:
     /*********************************  HELPERS  ************************************/
 
     function cropToLayer(layer){
+       if(layer.visible != false)
+            layer.visible = false;
+                    
         var bounds = layer.bounds;
         if(!bounds) return;
         doc.crop(bounds);
@@ -439,7 +443,6 @@ Qualities can be stated in three ways:
             if(app.activeDocument == app.documents[i])
                 return i;
         }
-        alert("Current document index not found.");
     }
     
     var getPath = function(){
@@ -449,153 +452,199 @@ Qualities can be stated in three ways:
         return app.documents[newIndex].path;
     };
     
+    var isLayerExportable = function(layer){
+        if(layer.typename != "LayerSet")
+            return false;
+        
+        //Get the extension
+        var info = convertLayerNameToInfo(layer.name);
+        if(!info.filename) 
+            return false;
+            
+        return true;
+    };
     
+
+    var exportLayer = function(layer){        
+        //Get the extension
+        var info = convertLayerNameToInfo(layer.name);
+        
+        //Hide hashed
+        eachLayer(function(l){
+            if(l.name.indexOf("#") != -1)
+               if(l.visible != false)
+                    l.visible = false;
+        });
+
+        //Crop if need be
+        for(var i=0; i<layer.layers.length; i++){
+            var l = layer.layers[i];
+            if(l.name.match(/^ *crop *(copy *(\d)*)* *$/i)){
+                cropToLayer(l);
+            }
+        }
+
+        //Hide bad stuff
+        hideSiblingsOfSelfAndOfParent(layer);
+
+        //Prepare saving function
+        var save = function(filename){
+            //Save
+            var filepath = getPath()+"/"+filename;
+            //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
+            doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
+
+            //Retina?
+            if(info.filename.match(/@2x[.][a-z]+$/)){
+                var preResizeState = doc.activeHistoryState;
+                
+                try { doc.flatten(); }catch(e){}
+                    
+                doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
+            
+                var filepath = getPath()+"/"+filename.replace("@2x", "");
+                //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
+                doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
+                doc.activeHistoryState = preResizeState;
+            }
+        }            
+
+        //save once for each tagged layer inside this layerset
+        if(new RegExp(/\{[^}]+\}/).test(info.filename)){
+            //gather all possible tags & tag values
+            var allTags = {};
+            eachLayer(function(l){
+                var info = convertLayerNameToInfo(l.name);
+                var currentTags = keys(info.tags);
+                for(var i=0; i<currentTags.length; i++){
+                    var t = currentTags[i];
+                    if(allTags[t]){
+                        allTags[t] = allTags[t].concat([ info.tags[t] ]).distinct();   
+                    }else{
+                        allTags[t] = [ info.tags[t] ];
+                    }
+                }
+            }, layer);
+            var allKeys = keys(allTags);
+            
+            //create a strategy for covering all tag combinations
+            var allCombinations = [];
+            var addTagSetToCombinations = function(tag, tagValues){
+                //no previous combos, so just add ours
+                if(allCombinations.length == 0){
+                    for(var i=0; i<tagValues.length; i++){
+                        var combo = {};
+                        combo[tag] = tagValues[i];
+                        allCombinations.push(combo);
+                    }
+                
+                //explode our tag into previous combos
+                }else{
+                    var newCombos = [];
+                    for(var i=0; i<allCombinations.length; i++){
+                        for(var j=0; j<tagValues.length; j++){
+                            var newCombo = clone(allCombinations[i]);
+                            newCombo[tag] = tagValues[j];
+                            newCombos.push(newCombo);
+                        }
+                    }
+                    allCombinations = newCombos;
+                }
+            };
+        
+           //actually create the combinations
+           allKeys.each(function(key){
+               addTagSetToCombinations(key, allTags[key]);
+           });
+             
+           //save each combo
+           for(var i=0; i<allCombinations.length; i++){
+                var combo = allCombinations[i];
+                eachLayer(function(l){
+                    var info = convertLayerNameToInfo(l.name);
+                    if(!info.hasTags) return;
+                    
+                    var visible = true;
+                    keys(info.tags).each(function(key){
+                       visible &= info.tags[key] == combo[key];
+                    });
+                    l.visible = visible;
+                }, layer);
+                
+                //create filename
+                var filename = info.filename;
+                allKeys.each(function(key){
+                    filename = filename.replace("{"+key+"}", combo[key]); 
+                });
+          
+                //save
+                save(filename);
+            }
+            
+        //save normally (no swapable layers)
+        }else{
+            save(info.filename);
+        }
+        
+        revert_all();
+    };
+
+    var exportableLayers = [];
+    eachLayer(function(l){
+        if(isLayerExportable(l)){
+            exportableLayers.push(l);
+        }
+    });
+
     
     /********************************************************************************/
     /**********************************  MAIN  **************************************/
-
-    /**
-     *  - Take an initial snapshot so we don't change any of their settings
-     *  - If a folder is named with an extension (.jpg, etc) then 
-     *    - Hide siblings of self & parent folders
-     *    - If current folder has a 'Crop' layer, then use it to crop
-     *  - Restore to initial snapshot
-     */
-
-    //try{
-        eachLayer(function(layer){
-            if(layer.typename == "LayerSet"){
-                //Get the extension
-                var info = convertLayerNameToInfo(layer.name);
-                if(!info.filename) return;
-
-                //Crop if need be
-                for(var i=0; i<layer.layers.length; i++){
-                    var l = layer.layers[i];
-                    if(l.name.match(/^ *crop *$/i)){
-                        cropToLayer(l);
-                    }
-                }
-
-                //Hide bad stuff
-                hideSiblingsOfSelfAndOfParent(layer);
-
-                //Prepare saving function
-                var save = function(filename){
-                    //Save
-                    var filepath = getPath()+"/"+filename;
-                    //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
-                    doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
-
-                    //Retina?
-                    if(info.filename.match(/@2x[.][a-z]+$/)){
-                        var preResizeState = doc.activeHistoryState;
-                        
-                        //if(doc.layers.length > 1)
-                            doc.mergeVisibleLayers();
-                            
-                        doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
-                    
-                        var filepath = getPath()+"/"+filename.replace("@2x", "");
-                        //doc.saveAs(new File(filepath), getSaveOptions(info), true, Extension.LOWERCASE);
-                        doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, getExportOptions(info));
-                        doc.activeHistoryState = preResizeState;
-                    }
-                }
-                
-                //Hide hashed
-                eachLayer(function(l){
-                    if(l.name.indexOf("#") != -1)
-					   if(l.visible != false)
-                            l.visible = false;
-                });
-                
-
-                //save once for each tagged layer inside this layerset
-                if(new RegExp(/\{[^}]+\}/).test(info.filename)){
-                    //gather all possible tags & tag values
-                    var allTags = {};
-                    eachLayer(function(l){
-                        var info = convertLayerNameToInfo(l.name);
-                        var currentTags = keys(info.tags);
-                        for(var i=0; i<currentTags.length; i++){
-                            var t = currentTags[i];
-                            if(allTags[t]){
-                                allTags[t] = allTags[t].concat([ info.tags[t] ]).distinct();   
-                            }else{
-                                allTags[t] = [ info.tags[t] ];
-                            }
-                        }
-                    }, layer);
-                    var allKeys = keys(allTags);
-                    
-                    //create a strategy for covering all tag combinations
-                    var allCombinations = [];
-                    var addTagSetToCombinations = function(tag, tagValues){
-                        //no previous combos, so just add ours
-                        if(allCombinations.length == 0){
-                            for(var i=0; i<tagValues.length; i++){
-                                var combo = {};
-                                combo[tag] = tagValues[i];
-                                allCombinations.push(combo);
-                            }
-                        
-                        //explode our tag into previous combos
-                        }else{
-                            var newCombos = [];
-                            for(var i=0; i<allCombinations.length; i++){
-                                for(var j=0; j<tagValues.length; j++){
-                                    var newCombo = clone(allCombinations[i]);
-                                    newCombo[tag] = tagValues[j];
-                                    newCombos.push(newCombo);
-                                }
-                            }
-                            allCombinations = newCombos;
-                        }
-                    };
-				
-				   //actually create the combinations
-				   allKeys.each(function(key){
-				       addTagSetToCombinations(key, allTags[key]);
-				   });
-                     
-                   //save each combo
-                   for(var i=0; i<allCombinations.length; i++){
-                        var combo = allCombinations[i];
-                        eachLayer(function(l){
-                            var info = convertLayerNameToInfo(l.name);
-                            if(!info.hasTags) return;
-                            
-                            var visible = true;
-                            keys(info.tags).each(function(key){
-						       visible &= info.tags[key] == combo[key];
-						    });
-						    l.visible = visible;
-                        }, layer);
-                        
-                        //create filename
-                        var filename = info.filename;
-                        allKeys.each(function(key){
-                            filename = filename.replace("{"+key+"}", combo[key]); 
-                        });
-				  
-                        //save
-                        save(filename);
-                    }
-                    
-                //save normally (no swapable layers)
-                }else{
-                    save(info.filename);
-                }
-                
-                revert_all();
+        
+    if(exportableLayers.length > 1)
+    {
+        // SHOW THE WINDOW
+        var win = new Window("dialog{text:'Script Interface',bounds:[100,100,400,220],\
+            btnExportAll:Button{bounds:[20,20,140,70] , text:'Export All' },\
+            btnOne:Button{bounds:[160,20,280,70] , text:'Export One' },\
+            prog:Progressbar{bounds:[20,90,280,101] , value:0,maxvalue:100},\
+            lblProgress:StaticText{bounds:[100,40,210,70] , text:'Saving 10 Images...' ,properties:{scrolling:false,multiline:false}}\
+        };");
+        win.lblProgress.visible = false;
+        win.btnExportAll.text = "Export All ("+exportableLayers.length+")";
+        win.btnExportAll.onClick = function(){
+            win.btnOne.visible = false;
+            win.btnExportAll.visible = false;
+            win.lblProgress.visible = true;
+            win.lblProgress.text = "Exporting All Images...";
+            
+            for(var i=0; i<exportableLayers.length; i++){
+                win.prog.value = ((i+1)*100.0)/(exportableLayers.length+1);
+                exportLayer(exportableLayers[i]);
             }
-        });
-    //}catch(error){
-     //   if(!confirm("Error in main: "+error))
-     //       return false; 
-    //}
-    revert_all();
+            win.prog.value = 100;
+                
+            win.close();
+        };
+        win.btnOne.text = selectedLayer.name;
+        win.btnOne.onClick = function(){
+            win.btnOne.visible = false;
+            win.btnExportAll.visible = false;
+            win.lblProgress.visible = true;
+            win.lblProgress.text = "Exporting "+selectedLayer.name+"...";
+            win.prog.value = 50;
+            exportLayer(selectedLayer);
+            win.close();
+        };
+        win.center();
+        win.show();
+    }
+    else
+    {
+        for(var i=0; i<exportableLayers.length; i++){
+            exportLayer(exportableLayers[i]);
+        }
+    }
+
 
 
 })();
