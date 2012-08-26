@@ -49,7 +49,7 @@ the background of the whole control bar, so I name a folder (layer set)
 I run this script (by pressing F5), it sees that I named this layer like an
 image so it hides the other layers & saves this one as ControlBar.png.
 
-[img: BarExample.jpg]
+![Bar Example](BarExample.jpg)
 
 You may have noticed the 'crop' layer. For me, it's very common to crop the
 image before I save a particular part.  In this example, the control bar is
