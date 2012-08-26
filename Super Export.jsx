@@ -84,7 +84,7 @@
         };
         
         // Get tags
-        if(data.name.indexOf("-") == 0){
+        if(data.name.indexOf("-") != -1){
             var tags = data.name.substring(data.name.lastIndexOf("-")+1).trim().split(",");
 		    for(var i=0; i<tags.length; i++){
 		        var t = tags[i].split(":");
