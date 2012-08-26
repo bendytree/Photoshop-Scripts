@@ -54,7 +54,7 @@ image so it hides the other layers & saves this one as ControlBar.png.
 You may have noticed the 'crop' layer. For me, it's very common to crop the
 image before I save a particular part.  In this example, the control bar is
 the full width of the iPhone app, but it is only part of the height so I need
-to crop it before saving it.
+to crop it before saving it. 
 
 So to make sure it's cropped, I create a layer called 'crop' and put it in my
 "ControlBar.png folder". Then I select a rectangle and fill it with any color
