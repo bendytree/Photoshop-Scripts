@@ -80,7 +80,7 @@ It looks cryptic, but it just means that I have tagged some layers that should
 be swapped out for "{0}".  In my case, I've tagged a layers "active", "normal",
 and "disabled".
 
-[img: BackExample.jpg]
+![Bar Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/BackExample.jpg)
 
 How do you tag a layer?  Easy, you just add a dash after the layer name, then
 write out the tags for that layer (comma separated).
