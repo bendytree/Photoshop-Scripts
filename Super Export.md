@@ -49,7 +49,7 @@ the background of the whole control bar, so I name a folder (layer set)
 I run this script (by pressing F5), it sees that I named this layer like an
 image so it hides the other layers & saves this one as ControlBar.png.
 
-![Bar Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/BarExample.png)
+![Bar Example](https://raw.github.com/bendytree/Photoshop-Scripts/master/BarExample.png)
 
 You may have noticed the 'crop' layer. For me, it's very common to crop the
 image before I save a particular part.  In this example, the control bar is
@@ -80,7 +80,7 @@ It looks cryptic, but it just means that I have tagged some layers that should
 be swapped out for "{0}".  In my case, I've tagged a layers "active", "normal",
 and "disabled".
 
-![Back Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/BackExample.png)
+![Back Example](https://raw.github.com/bendytree/Photoshop-Scripts/master/BackExample.png)
 
 How do you tag a layer?  Easy, you just add a dash after the layer name, then
 write out the tags for that layer (comma separated).
@@ -102,7 +102,7 @@ annoying to have to re-save all those combinations.
 
 So here's how I name all the layers to make this happen automatically:
 
-![Complex Tagging Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/PPExample.png)
+![Complex Tagging Example](https://raw.github.com/bendytree/Photoshop-Scripts/master/PPExample.png)
 
 The whole folder is named "{type}Button_{state}.png" because I have have two
 types of tags - a "type" (play or pause) and a "state" (normal, active, or
@@ -132,7 +132,7 @@ for @2x, then resize to the smaller version.
 To make this happen, just add @2x in your file name (the layer name) and
 a non @2x version is generated automatically.
 
-![Retina Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/RetinaExample.png)
+![Retina Example](https://raw.github.com/bendytree/Photoshop-Scripts/master/RetinaExample.png)
 
 For example, you might name a layer "Background@2x.png" which would create
 two files: "Background@2x.png" and another one (half the size) that's
@@ -143,11 +143,11 @@ Export Path
 
 I usually don't want to export my images in the same folder as my psd.  I usually have a project where the design files are in their own folder.  For this example I have the following file structure.  I want my files to go straight to the correct images folder.
 
-![Folder Structure](https://raw.github.com/bclubb/Photoshop-Scripts/master/FolderStructure.png)
+![Folder Structure](https://raw.github.com/bendytree/Photoshop-Scripts/master/FolderStructure.png)
 
 Now to make this happen all you have to do is make your first layer start with the name exportPath- followed by /path/to/export.  As you can see here you can even use can ../ to go up the path.
 
-![Export Path Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/exportPath.png)
+![Export Path Example](https://raw.github.com/bendytree/Photoshop-Scripts/master/exportPath.png)
 
 PREVIEW ONLY
 
@@ -155,7 +155,7 @@ Sometimes I'll have 'lorem ipsum' type text to help my imagination while I'm
 designing, but I don't want those layers to be shown when I save everything.
 Just add a "#" to the layer name, and this script will automatically hide it.
 
-![Preview Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/PreviewExample.png)
+![Preview Example](https://raw.github.com/bendytree/Photoshop-Scripts/master/PreviewExample.png)
 
 FILE TYPES
 
