@@ -139,12 +139,23 @@ two files: "Background@2x.png" and another one (half the size) that's
 called "Background.png".
 
 
+Export Path
+
+I usually don't want to export my images in the same folder as my psd.  I usually have a project where the design files are in their own folder.  For this example I have the following file structure.  I want my files to go straight to the correct images folder.
+
+![Folder Structure](https://raw.github.com/bclubb/Photoshop-Scripts/master/FolderStructure.png)
+
+Now to make this happen all you have to do is make your first layer start with the name exportPath- followed by /path/to/export.  As you can see here you can even use can ../ to go up the path.
+
+![Export Path Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/ExportPath.png)
+
 PREVIEW ONLY
 
 Sometimes I'll have 'lorem ipsum' type text to help my imagination while I'm
 designing, but I don't want those layers to be shown when I save everything.
 Just add a "#" to the layer name, and this script will automatically hide it.
 
+![Preview Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/PreviewExample.png)
 
 FILE TYPES
 

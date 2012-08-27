@@ -1,4 +1,4 @@
-﻿(function(){
+﻿ 	(function(){
 
     var doc =  app.activeDocument;    
     app.preferences.rulerUnits = Units.PIXELS;
@@ -80,11 +80,16 @@
             siblings: [],
             descendents: [],
             ancestors: [],
-            children: []
+            children: [],
+			exportPath: ""
         };
         
-        // Get tags
-        if(data.name.indexOf("-") != -1){
+		// Export Modifier
+		if(data.name.indexOf("exportPath-") != -1){
+			data.exportPath = data.name.substring(data.name.lastIndexOf("-")+1).trim();
+		}
+		// Get tags
+        else if(data.name.indexOf("-") != -1){
             var tags = data.name.substring(data.name.lastIndexOf("-")+1).trim().split(",");
 		    for(var i=0; i<tags.length; i++){
 		        var t = tags[i].split(":");
@@ -287,18 +292,30 @@
         }
     }
     
-    var getPath = function(){
-        if(app.documents.length == 1 || !new RegExp(/TemporaryItems/).test(app.activeDocument.path))
-            return app.activeDocument.path;
-        var newIndex = (getCurrentDocumentIndex()-1) % app.documents.length;
-        return app.documents[newIndex].path;
+    var getPath = function(exportPath){
+		var docPath;
+        if(app.documents.length == 1 || !new RegExp(/TemporaryItems/).test(app.activeDocument.path)){
+			docPath = app.activeDocument.path;
+		} else {
+			var newIndex = (getCurrentDocumentIndex()-1) % app.documents.length;
+	        docPath = app.documents[newIndex].path;
+		}
+		//Check if it exist, if not create it.
+		if(exportPath != "")
+		{
+			var exportFolder = Folder(docPath+exportPath);
+			if(!exportFolder.exists) exportFolder.create();
+			return exportFolder;
+		} else {
+			return docPath;
+		}
     };
     
     
     /********************************************************************************/
     /*******************************  LAYER EXPORT  **********************************/
 
-    var exportLayer = function(data){
+    var exportLayer = function(data, exportPath){
         
         //crop
         runCroppingLayers(data);
@@ -309,7 +326,7 @@
         //Prepare saving function
         var save = function(filename){
             //Save
-            var filepath = getPath()+"/"+filename;
+            var filepath = getPath(exportPath) + "/" +filename;
             var exportOptions = getExportOptions(data);
             doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, exportOptions);
 
@@ -321,7 +338,7 @@
                     
                 doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
             
-                var filepath = getPath()+"/"+filename.replace("@2x", "");
+                var filepath = getPath(exportPath)+"/"+filename.replace("@2x", "");
                 doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, exportOptions);
                 doc.activeHistoryState = preResizeState;
             }
@@ -428,10 +445,14 @@
     
     /********************************************************************************/
     /**********************************  MAIN  **************************************/
-
     
+
     //which layer to export?
     var activeLayerDataToExport = findDataForLayer(selectedLayer);
+	var exportPath = "";
+	if (activeLayerDataToExport.exportPath != "") {
+		var exportPath = activeLayerDataToExport.exportPath;
+	}
     if(activeLayerDataToExport && !activeLayerDataToExport.isExportable){
         var newActiveLayerDataToExport = null;
         activeLayerDataToExport.ancestors.each(function(a){
@@ -481,7 +502,7 @@
     else
     {
         exportableLayers.each(function(l){
-            exportLayer(l);
+            exportLayer(l, exportPath);
         });
     }
 
