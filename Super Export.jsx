@@ -1,4 +1,19 @@
-﻿ 	(function(){
+﻿/**
+
+Super Export.jsx
+  by: Josh Wright
+  company: Bendy Tree, LLC (http://www.bendytree.com)
+  created: July 30, 2011
+  repo: https://github.com/bendytree/Photoshop-Scripts
+/**
+
+Super Export.jsx
+  by: Josh Wright
+  company: Bendy Tree, LLC (http://www.bendytree.com)
+  created: July 30, 2011
+  repo: https://github.com/bendytree/Photoshop-Scripts
+**/
+(function(){
 
     var doc =  app.activeDocument;    
     app.preferences.rulerUnits = Units.PIXELS;
@@ -81,15 +96,11 @@
             descendents: [],
             ancestors: [],
             children: [],
-			exportPath: ""
+            exportPath: ""
         };
         
-		// Export Modifier
-		if(data.name.indexOf("exportPath-") != -1){
-			data.exportPath = data.name.substring(data.name.lastIndexOf("-")+1).trim();
-		}
-		// Get tags
-        else if(data.name.indexOf("-") != -1){
+        // Get tags
+        if(data.name.indexOf("-") != -1){
             var tags = data.name.substring(data.name.lastIndexOf("-")+1).trim().split(",");
 		    for(var i=0; i<tags.length; i++){
 		        var t = tags[i].split(":");
@@ -293,22 +304,22 @@
     }
     
     var getPath = function(exportPath){
-		var docPath;
+	var docPath;
         if(app.documents.length == 1 || !new RegExp(/TemporaryItems/).test(app.activeDocument.path)){
-			docPath = app.activeDocument.path;
-		} else {
-			var newIndex = (getCurrentDocumentIndex()-1) % app.documents.length;
+		docPath = app.activeDocument.path;
+	} else {
+		var newIndex = (getCurrentDocumentIndex()-1) % app.documents.length;
 	        docPath = app.documents[newIndex].path;
-		}
-		//Check if it exist, if not create it.
-		if(exportPath != "")
-		{
-			var exportFolder = Folder(docPath+exportPath);
-			if(!exportFolder.exists) exportFolder.create();
-			return exportFolder;
-		} else {
-			return docPath;
-		}
+	}
+	//Check if it exist, if not create it.
+	if(exportPath != "")
+	{
+		var exportFolder = Folder(docPath+exportPath);
+		if(!exportFolder.exists) exportFolder.create();
+		return exportFolder;
+	} else {
+		return docPath;
+	}
     };
     
     
@@ -449,10 +460,10 @@
 
     //which layer to export?
     var activeLayerDataToExport = findDataForLayer(selectedLayer);
-	var exportPath = "";
-	if (activeLayerDataToExport.exportPath != "") {
-		var exportPath = activeLayerDataToExport.exportPath;
-	}
+    var exportPath = "";
+    if (activeLayerDataToExport.exportPath != "") {
+	var exportPath = activeLayerDataToExport.exportPath;
+    }
     if(activeLayerDataToExport && !activeLayerDataToExport.isExportable){
         var newActiveLayerDataToExport = null;
         activeLayerDataToExport.ancestors.each(function(a){
