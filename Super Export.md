@@ -147,7 +147,7 @@ I usually don't want to export my images in the same folder as my psd.  I usuall
 
 Now to make this happen all you have to do is make your first layer start with the name exportPath- followed by /path/to/export.  As you can see here you can even use can ../ to go up the path.
 
-![Export Path Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/ExportPath.png)
+![Export Path Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/exportPath.png)
 
 PREVIEW ONLY
 
