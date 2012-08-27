@@ -102,7 +102,7 @@ annoying to have to re-save all those combinations.
 
 So here's how I name all the layers to make this happen automatically:
 
-[img: PPExample.jpg]
+![Bar Example](https://raw.github.com/bclubb/Photoshop-Scripts/master/PPExample.jpg)
 
 The whole folder is named "{type}Button_{state}.png" because I have have two
 types of tags - a "type" (play or pause) and a "state" (normal, active, or
