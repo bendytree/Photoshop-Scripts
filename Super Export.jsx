@@ -5,13 +5,7 @@ Super Export.jsx
   company: Bendy Tree, LLC (http://www.bendytree.com)
   created: July 30, 2011
   repo: https://github.com/bendytree/Photoshop-Scripts
-/**
 
-Super Export.jsx
-  by: Josh Wright
-  company: Bendy Tree, LLC (http://www.bendytree.com)
-  created: July 30, 2011
-  repo: https://github.com/bendytree/Photoshop-Scripts
 **/
 (function(){
 
@@ -100,10 +94,12 @@ Super Export.jsx
         };
         
         // Get tags
-        if(data.name.indexOf("-") != -1){
+        if(data.name.indexOf("exportPath-") != -1){
+            data.exportPath = data.name.substring(data.name.lastIndexOf("-")+1).trim();
+        } else if(data.name.indexOf("-") != -1){
             var tags = data.name.substring(data.name.lastIndexOf("-")+1).trim().split(",");
-		    for(var i=0; i<tags.length; i++){
-		        var t = tags[i].split(":");
+            for(var i=0; i<tags.length; i++){
+                var t = tags[i].split(":");
                 if(t.length == 1){
                     t[1] = t[0].trim();
                     t[0] = "0";
@@ -111,8 +107,8 @@ Super Export.jsx
                     t[0] = t[0].trim();
                     t[1] = t[1].trim();
                 }
-			    data.tags[t[0]] = t[1];
-		    }
+          data.tags[t[0]] = t[1];
+        }
             data.name = data.name.substring(0, data.name.lastIndexOf("-")).trim();
             data.hasTags = true;
         }
@@ -214,7 +210,7 @@ Super Export.jsx
         doc.activeLayer = selectedLayer;
 
         layerDatas.each(function(l){
-		    if(l.startedVisible != l.layer.visible)
+            if(l.startedVisible != l.layer.visible)
                 l.layer.visible = l.startedVisible;
         });
     }
@@ -304,24 +300,23 @@ Super Export.jsx
     }
     
     var getPath = function(exportPath){
-	var docPath;
+        var docPath;
         if(app.documents.length == 1 || !new RegExp(/TemporaryItems/).test(app.activeDocument.path)){
-		docPath = app.activeDocument.path;
-	} else {
-		var newIndex = (getCurrentDocumentIndex()-1) % app.documents.length;
-	        docPath = app.documents[newIndex].path;
-	}
-	//Check if it exist, if not create it.
-	if(exportPath != "")
-	{
-		var exportFolder = Folder(docPath+exportPath);
-		if(!exportFolder.exists) exportFolder.create();
-		return exportFolder;
-	} else {
-		return docPath;
-	}
-    };
-    
+            docPath = app.activeDocument.path;
+        } else {
+            var newIndex = (getCurrentDocumentIndex()-1) % app.documents.length;
+            docPath = app.documents[newIndex].path;
+        }
+        //Check if it exist, if not create it.
+        if(exportPath != "")
+        {
+            var exportFolder = Folder(docPath+exportPath);
+            if(!exportFolder.exists) exportFolder.create();
+            return exportFolder;
+        } else {
+            return docPath;
+        }
+    };    
     
     /********************************************************************************/
     /*******************************  LAYER EXPORT  **********************************/
@@ -335,7 +330,7 @@ Super Export.jsx
         hideSiblingsOfSelfAndOfParent(data);
 
         //Prepare saving function
-        var save = function(filename){
+        var save = function(filename, exportPath){
             //Save
             var filepath = getPath(exportPath) + "/" +filename;
             var exportOptions = getExportOptions(data);
@@ -424,12 +419,12 @@ Super Export.jsx
                 });
           
                 //save
-                save(filename);
+                save(filename, exportPath);
             }
             
         //save normally (no swapable layers)
         }else{
-            save(data.filename);
+            save(data.filename, exportPath);
         }
     
         revert();
@@ -462,7 +457,7 @@ Super Export.jsx
     var activeLayerDataToExport = findDataForLayer(selectedLayer);
     var exportPath = "";
     if (activeLayerDataToExport.exportPath != "") {
-	var exportPath = activeLayerDataToExport.exportPath;
+        exportPath = activeLayerDataToExport.exportPath;
     }
     if(activeLayerDataToExport && !activeLayerDataToExport.isExportable){
         var newActiveLayerDataToExport = null;
@@ -516,8 +511,5 @@ Super Export.jsx
             exportLayer(l, exportPath);
         });
     }
-
-
-
 })();
 
