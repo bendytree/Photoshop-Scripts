@@ -340,7 +340,7 @@ Super Export.jsx
             if(data.filename.match(/@2x[.][a-z]+$/)){
                 var preResizeState = doc.activeHistoryState;
                 
-                try { doc.flatten(); }catch(e){}
+                try { doc.mergeVisibleLayers(); }catch(e){}
                     
                 doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
             
