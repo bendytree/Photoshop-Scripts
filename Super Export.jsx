@@ -107,8 +107,8 @@ Super Export.jsx
                     t[0] = t[0].trim();
                     t[1] = t[1].trim();
                 }
-          data.tags[t[0]] = t[1];
-        }
+                data.tags[t[0]] = t[1];
+            }
             data.name = data.name.substring(0, data.name.lastIndexOf("-")).trim();
             data.hasTags = true;
         }
@@ -340,7 +340,7 @@ Super Export.jsx
             if(data.filename.match(/@2x[.][a-z]+$/)){
                 var preResizeState = doc.activeHistoryState;
                 
-                try { doc.flatten(); }catch(e){}
+                try { doc.mergeVisibleLayers(); }catch(e){}
                     
                 doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
             
