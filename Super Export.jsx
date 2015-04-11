@@ -2,10 +2,9 @@
 
 Super Export.jsx
   by: Josh Wright
-  company: Bendy Tree, LLC (http://www.joshwright.com)
+  company: Bendy Tree, LLC (http://www.bendytree.com)
   created: July 30, 2011
   repo: https://github.com/bendytree/Photoshop-Scripts
-  last updated: April 11, 2015
 
 **/
 
@@ -358,12 +357,14 @@ Super Export.jsx
                 var preResizeState = doc.activeHistoryState;
                 
                 try { doc.mergeVisibleLayers(); }catch(e){}
-                    
+                
+                var flattenedState = doc.activeHistoryState;
                 doc.resizeImage(doc.width*(2.0/3.0), doc.height*(2.0/3.0), doc.resolution, ResampleMethod.BICUBICSHARPER);
                 var filepath = getPath(exportPath)+"/"+filename.replace("@3x", "@2x");
                 doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, exportOptions);
-                    
-                doc.resizeImage(doc.width/2, doc.height/2, doc.resolution, ResampleMethod.BICUBICSHARPER);
+                
+                doc.activeHistoryState = flattenedState;
+                doc.resizeImage(doc.width*(1.0/3.0), doc.height*(1.0/3.0), doc.resolution, ResampleMethod.BICUBICSHARPER);
                 filepath = getPath(exportPath)+"/"+filename.replace("@3x", "");
                 doc.exportDocument(new File(filepath), ExportType.SAVEFORWEB, exportOptions);
                 
