@@ -39,7 +39,7 @@ I made a keyboard shortcut `[F5]` to run it automatically, Here's how:
 3. Click under the 'Shortcut' column and type the [F5] key (or whatever you want)
 4. If there are conflicts, choose 'Accept & Continue', otherwise choose 'Accept'
 
-ADVANCED USERS: You can also have scripts in subfolders of this directory, so if you're familiar with GIT, want all my scripts, and want easy access to updates you could clone:  `git@github.com:bendytree/Photoshop-Scripts.git` to `/Applications/Adobe Photoshop CS4/Presets/Scripts/BendyTree`  and whenever you want an update, just do a `git pull` from that directory.  Photoshop gracefully ignores non .jsx files (like .gitignore and readme).
+ADVANCED USERS: You can also have scripts in subfolders of this directory, so if you're familiar with GIT, want all my scripts, and want easy access to updates you could clone:  `https://github.com/bendytree/Photoshop-Scripts` to `/Applications/Adobe Photoshop CS4/Presets/Scripts/BendyTree`  and whenever you want an update, just do a `git pull` from that directory.  Photoshop gracefully ignores non .jsx files (like .gitignore and readme).
 
 
 
